@@ -1,1 +1,2 @@
-- [ ] send a file from client to server, then server save into server_repo
+- [x] send a file from client to server, then server save into server_repo
+- [ ] refactor existing code
