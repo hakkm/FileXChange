@@ -1,4 +1,4 @@
 - [x] send a file from client to server, then server save into server_repo
 - [x] refactor existing code
 - [x] make cli interactive to upload `UPLOAD <filename>`
-- [ ] Define protocol for file transfer
+- [x] Define protocol for file transfer
