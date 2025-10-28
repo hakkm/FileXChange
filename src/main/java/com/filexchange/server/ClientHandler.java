@@ -1,5 +1,7 @@
 package com.filexchange.server;
 
+import com.filexchange.common.Utils;
+
 import java.io.DataInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,13 +25,7 @@ public class ClientHandler implements Runnable {
 
 
             try (FileOutputStream fos = new FileOutputStream("src/main/resources/server_repo/" + filename)) {
-                int count;
-                byte[] buffer = new byte[8192]; // chuck size is 8192 bytes
-                int totalRead = 0;
-                while (totalRead < filesize && (count = dis.read(buffer, 0, (int) Math.min(buffer.length, filesize - totalRead))) != -1) {
-                    fos.write(buffer, 0, count);
-                    totalRead += count;
-                }
+                Utils.copyStream(dis, fos, filesize);
                 System.out.println("File received: " + filename);
             }
         } catch (IOException e) {

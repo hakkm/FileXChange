@@ -1,37 +1,89 @@
 package com.filexchange.client;
 
-import java.io.*;
+import com.filexchange.common.Utils;
+import jdk.jshell.execution.Util;
+
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class FileClient {
+    private final Logger logger = Logger.getLogger(FileClient.class.getName());
+    private final String host;
+    private final short port;
+
+    public FileClient(String host, short port) {
+        this.host = host;
+        this.port = port;
+    }
+
     public static void main(String[] args) {
-        String filePath = "/home/khabir/dows/FORD2.pdf";
-        File file = new File(filePath);
-        if (!file.exists()) {
-            System.out.println("File not found");
-            return;
-        }
+        String host = "127.0.0.1";
+        short port = 1024;
+        new FileClient(host, port).start();
+    }
 
-        System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
+    public void start() {
 
-        try (Socket conn = new Socket("localhost", 1024);
+//        String filePath = "/home/khabir/dows/FORD2.pdf";
+//        File file = new File(filePath);
+//        if (!file.exists()) {
+//            System.out.println("File not found");
+//            return;
+//        }
+//
+//        System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
+
+        try (Socket conn = new Socket(host, port);
              DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
-             FileInputStream f_in = new FileInputStream(file)) {
+             Scanner sc = new Scanner(System.in)) {
+            logger.info("Connected to server " + host + ":" + port);
 
-            dos.writeUTF(file.getName());
-            dos.writeLong(file.length());
-            int count;
-            byte[] buffer = new byte[8192]; // chuck size is 8192 bytes
-            while ((count = f_in.read(buffer)) != -1) {
-                dos.write(buffer, 0, count);
+            while (true) {
+                System.out.print("client> ");
+                String command = sc.nextLine();
+                if (command == null) break;
+                String[] parts = command.split(" ", 2);
+                String cmd = parts[0].trim().toUpperCase();
+                switch (cmd) {
+                    case "EXIT", "QUIT" -> {
+                        logger.info("Exiting...");
+                        return;
+                    }
+                    case "UPLOAD" -> {
+                        if (parts.length < 2) {
+                            System.out.println("Usage: UPLOAD <local_path>");
+                            break;
+                        }
+                        Path path = Path.of(parts[1].trim());
+                        if (!Files.exists(path) || !Files.isRegularFile(path)) {
+                            System.out.println("Local file does not exist");
+                            break;
+                        }
+                        var file = path.toFile();
+                        try (FileInputStream f_in = new FileInputStream(file)) {
+                            System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
+                            dos.writeUTF(file.getName());
+                            dos.writeLong(file.length());
+                            Utils.copyStream(f_in, dos, file.length());
+                            System.out.println("File sent: " + file.getName());
+                        }
+                    }
+                    default -> {
+                        System.out.println("Unknown command: " + cmd);
+                        continue;
+                    }
+                }
             }
-            System.out.println("File sent: " + file.getName());
-
 
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.severe("Client error: " + e.getMessage());
         }
-
     }
 }
