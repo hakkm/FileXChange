@@ -1,5 +1,6 @@
 package com.filexchange.client;
 
+import com.filexchange.common.Protocol;
 import com.filexchange.common.Utils;
 import jdk.jshell.execution.Util;
 
@@ -51,11 +52,11 @@ public class FileClient {
                 String[] parts = command.split(" ", 2);
                 String cmd = parts[0].trim().toUpperCase();
                 switch (cmd) {
-                    case "EXIT", "QUIT" -> {
+                    case Protocol.CMD_EXIT -> {
                         logger.info("Exiting...");
                         return;
                     }
-                    case "UPLOAD" -> {
+                    case Protocol.CMD_UPLOAD -> {
                         if (parts.length < 2) {
                             System.out.println("Usage: UPLOAD <local_path>");
                             break;
@@ -67,9 +68,9 @@ public class FileClient {
                         }
                         var file = path.toFile();
                         try (FileInputStream f_in = new FileInputStream(file)) {
-                            System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
-                            dos.writeUTF(file.getName());
-                            dos.writeLong(file.length());
+                            System.out.printf("Sending filename: %s, size: %d%n", file.getName(), file.length());
+                            String request = Protocol.CMD_UPLOAD + " " + file.length() + " " + file.getName();
+                            dos.writeUTF(request);
                             Utils.copyStream(f_in, dos, file.length());
                             System.out.println("File sent: " + file.getName());
                         }

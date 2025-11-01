@@ -8,7 +8,7 @@ CLI). The client and server communicate using plain text commands and responses.
 ### Upload File
 
 1. User write command `UPLOAD <filename>` in CLI, then
-2. Client sends `UPLOAD <filename> <filesize>\n` to the server
+2. Client sends `UPLOAD <filesize> <filename>\n` to the server
 3. Then Server responds with `READY\n` if ready to receive the file. Or `ERROR <message>\n` if there was an error. (include
 bigger than max size)
 4. Then Client sends the file content in binary format.
