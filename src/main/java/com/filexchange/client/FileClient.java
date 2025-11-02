@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Scanner;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class FileClient {
@@ -29,16 +30,6 @@ public class FileClient {
     }
 
     public void start() {
-
-//        String filePath = "/home/khabir/dows/FORD2.pdf";
-//        File file = new File(filePath);
-//        if (!file.exists()) {
-//            System.out.println("File not found");
-//            return;
-//        }
-//
-//        System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
-
         try (Socket conn = new Socket(host, port);
              var dos = new DataOutputStream(conn.getOutputStream());
              var dis = new java.io.DataInputStream(conn.getInputStream());
@@ -55,13 +46,6 @@ public class FileClient {
                     case Protocol.CMD_EXIT -> {
                         logger.info("Exiting...");
                         return;
-                    }
-                    case Protocol.CMD_LIST -> {
-                        String request = Protocol.CMD_LIST;
-                        dos.writeUTF(request);
-                        System.out.println("Sent LIST command");
-                        String response = dis.readUTF();
-                        System.out.println(response);
                     }
                     case Protocol.CMD_UPLOAD -> {
                         if (parts.length < 2) {
@@ -82,16 +66,26 @@ public class FileClient {
                             System.out.println("File sent: " + file.getName());
                         }
                     }
+                    case Protocol.CMD_LIST -> {
+                        String request = Protocol.CMD_LIST;
+                        dos.writeUTF(request);
+                        System.out.println("Sent LIST command");
+                        String response = dis.readUTF();
+                        logger.fine("Received response: " + response);
+                        System.out.println(response);
+                    }
+                    case Protocol.CMD_DOWNLOAD -> {
+                        // todo
+                    }
                     default -> {
                         System.out.println("Unknown command: " + cmd);
-                        continue;
                     }
                 }
             }
 
 
         } catch (IOException e) {
-            logger.severe("Client error: " + e.getMessage());
+            logger.log(Level.SEVERE, "Client error: " + e.getMessage(), e);
         }
     }
 }

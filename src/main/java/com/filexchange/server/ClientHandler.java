@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
@@ -22,24 +23,31 @@ public class ClientHandler implements Runnable {
         try (socket;
              DataInputStream dis = new DataInputStream(socket.getInputStream());
              DataOutputStream dos = new DataOutputStream(socket.getOutputStream())) {
-            String msg = dis.readUTF();
-            logger.info("Received command: " + msg);
-            var parts = msg.split(" ");
-            var cmd = parts[0].trim().toUpperCase();
+            String msg;
+            while (true) {
+                msg = dis.readUTF();
+                if (msg.isBlank()) continue;
+                logger.info("Received command: " + msg);
+                var parts = msg.split(" ");
+                var cmd = parts[0].trim().toUpperCase();
 
 
-            CommandHandler commandHandler = new CommandHandler();
+                CommandHandler commandHandler = new CommandHandler();
 
-            switch (cmd) {
-                case Protocol.CMD_UPLOAD -> commandHandler.upload(dis, dos, parts);
-                case Protocol.CMD_DOWNLOAD -> System.out.println("download");
-                case Protocol.CMD_LIST -> commandHandler.list(dos);
-                case Protocol.CMD_EXIT -> System.out.println("exit");
-                default -> System.out.println("unknown command");
+                switch (cmd) {
+                    case Protocol.CMD_UPLOAD -> commandHandler.upload(dis, dos, parts);
+                    case Protocol.CMD_DOWNLOAD -> System.out.println("download");
+                    case Protocol.CMD_LIST -> commandHandler.list(dos);
+                    case Protocol.CMD_EXIT -> {
+                        System.out.println("exit");
+                        return;
+                    }
+                    default -> System.out.println("unknown command");
+                }
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Client handler error: " + e.getMessage(), e);
         }
     }
 }

@@ -2,3 +2,4 @@
 - [x] refactor existing code
 - [x] make cli interactive to upload `UPLOAD <filename>`
 - [x] Define protocol for file transfer
+- [ ] Download file from server to client
