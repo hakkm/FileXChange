@@ -1,5 +1,6 @@
 package com.filexchange.server;
 
+import com.filexchange.common.FileUploadCommand;
 import com.filexchange.common.Protocol;
 import com.filexchange.common.Utils;
 
@@ -11,30 +12,23 @@ import java.util.logging.Logger;
 
 public class CommandHandler {
     static final public int MAX_FILENAME_LENGTH = 255;
-    static final public int MAX_FILESIZE = 10 * 1024 * 1024; // 10 MB
     static final public String STORAGE_PATH = "src/main/resources/server_repo/";
     // logger
     private static final Logger logger = Logger.getLogger(CommandHandler.class.getName());
 
-    public void upload(InputStream in, OutputStream out, String[] parts) {
-        // parse input: UPLOAD <filename> <filesize>
-        if (parts.length < 3) {
-            String response = Protocol.RESP_ERROR + " Missing filename or filesize";
-            logger.info(response);
-            try {
-                out.write(response.getBytes());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return;
-        }
+    private final CommandParser commandParser;
 
-        String filesizeStr = parts[1].trim();
-        long filesize;
+    public CommandHandler() {
+        this.commandParser = new CommandParser();
+    }
+
+    public void upload(InputStream in, OutputStream out, String[] parts) {
+        FileUploadCommand uploadCommand;
+
         try {
-            filesize = Long.parseLong(filesizeStr);
-        } catch (NumberFormatException e) {
-            String response = Protocol.RESP_ERROR + " Invalid filesize";
+            uploadCommand = commandParser.parseUpdate(parts);
+        } catch (Exception e) {
+            String response = Protocol.RESP_ERROR + e.getMessage();
             logger.info(response);
             try {
                 out.write(response.getBytes());
@@ -43,33 +37,7 @@ public class CommandHandler {
             }
             return;
         }
-
-        // check for file size
-        if (filesize < 0 || filesize > MAX_FILESIZE) {
-            String response = Protocol.RESP_ERROR + " Filesize exceeds limit";
-            logger.info(response);
-            try {
-                out.write(response.getBytes());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return;
-        }
-
-        // filename is the concat from 2 to end
-        String filename = String.join(" ", java.util.Arrays.copyOfRange(parts, 2, parts.length)).trim();
-
-        // check for filename length
-        if (filename.isEmpty() || filename.length() > MAX_FILENAME_LENGTH) {
-            String response = Protocol.RESP_ERROR + " Invalid filename length";
-            logger.info(response);
-            try {
-                out.write(response.getBytes());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return;
-        }
+        assert uploadCommand != null;
 
         // ready message
         String response = Protocol.RESP_READY;
@@ -84,13 +52,13 @@ public class CommandHandler {
         // proceed to receive the file... + check for the file size to be < MAX_FILESIZE
         // give the filename a unique identifier to avoid overwriting
         // todo: don't miss to remove the unique identifier when listing files for download
-        String uniqueFilename = System.currentTimeMillis() + "_" + filename;
+        String uniqueFilename = System.currentTimeMillis() + "_" + uploadCommand.getFilename();
         try (FileOutputStream fos = new FileOutputStream(STORAGE_PATH + uniqueFilename)) {
-            logger.info("Trying to receive file: " + filename + ", size: " + filesize);
+            logger.info("Trying to receive file: " + uploadCommand.getFilename() + ", size: " + uploadCommand.getFilesize());
             // why i didn't check for actual filesize from the stream:
             //   because in Utils.copyStream() we only copy up to filesize bytes
-            Utils.copyStream(in, fos, filesize);
-            logger.info("File received: " + filename);
+            Utils.copyStream(in, fos, uploadCommand.getFilesize());
+            logger.info("File received: " + uploadCommand.getFilename());
             try {
                 String resp = Protocol.RESP_OK + " File uploaded successfully";
                 logger.info(resp);
