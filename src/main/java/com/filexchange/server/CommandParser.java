@@ -11,7 +11,6 @@ import java.util.logging.Logger;
 
 public class CommandParser {
     static final public int MAX_FILENAME_LENGTH = 255;
-    static final public String STORAGE_PATH = "src/main/resources/server_repo/";
     static final public int MAX_FILESIZE = 10 * 1024 * 1024; // 10 MB
     private static final Logger logger = Logger.getLogger(CommandParser.class.getName());
 

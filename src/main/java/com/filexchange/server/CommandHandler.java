@@ -4,14 +4,11 @@ import com.filexchange.common.FileUploadCommand;
 import com.filexchange.common.Protocol;
 import com.filexchange.common.Utils;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CommandHandler {
-    static final public int MAX_FILENAME_LENGTH = 255;
     static final public String STORAGE_PATH = "src/main/resources/server_repo/";
     // logger
     private static final Logger logger = Logger.getLogger(CommandHandler.class.getName());
@@ -33,7 +30,7 @@ public class CommandHandler {
             try {
                 out.write(response.getBytes());
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
             }
             return;
         }
@@ -45,7 +42,7 @@ public class CommandHandler {
             out.write(response.getBytes());
             logger.info(response);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Failed to send READY message: " + e.getMessage(), e);
             return;
         }
 
@@ -64,7 +61,7 @@ public class CommandHandler {
                 logger.info(resp);
                 out.write(resp.getBytes());
             } catch (IOException ex) {
-                ex.printStackTrace();
+                logger.log(Level.SEVERE, "Failed to send upload success message: " + ex.getMessage(), ex);
             }
 
         } catch (IOException e) {
@@ -73,8 +70,21 @@ public class CommandHandler {
                 logger.info(resp);
                 out.write(resp.getBytes());
             } catch (IOException ex) {
-                ex.printStackTrace();
+                logger.log(Level.SEVERE, "Failed to receive the file: " + e.getMessage(), e);
             }
+        }
+    }
+
+    public void list(DataOutputStream dos) {
+        // 1. list files in STORAGE_PATH
+        StringBuffer fileList = Utils.list(STORAGE_PATH);
+        // 2. send the list to the client
+        try {
+            String response = Protocol.RESP_LIST_PREFIX + "\n" + fileList;
+            dos.writeUTF(response);
+            logger.info("Sent file list to client.");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Failed to send file list to client: " + e.getMessage(), e);
         }
     }
 }

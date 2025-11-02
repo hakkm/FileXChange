@@ -2,7 +2,6 @@ package com.filexchange.client;
 
 import com.filexchange.common.Protocol;
 import com.filexchange.common.Utils;
-import jdk.jshell.execution.Util;
 
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -41,8 +40,9 @@ public class FileClient {
 //        System.out.printf("Sending filename: %s, size: %d", file.getName(), file.length());
 
         try (Socket conn = new Socket(host, port);
-             DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
-             Scanner sc = new Scanner(System.in)) {
+             var dos = new DataOutputStream(conn.getOutputStream());
+             var dis = new java.io.DataInputStream(conn.getInputStream());
+             var sc = new Scanner(System.in)) {
             logger.info("Connected to server " + host + ":" + port);
 
             while (true) {
@@ -55,6 +55,13 @@ public class FileClient {
                     case Protocol.CMD_EXIT -> {
                         logger.info("Exiting...");
                         return;
+                    }
+                    case Protocol.CMD_LIST -> {
+                        String request = Protocol.CMD_LIST;
+                        dos.writeUTF(request);
+                        System.out.println("Sent LIST command");
+                        String response = dis.readUTF();
+                        System.out.println(response);
                     }
                     case Protocol.CMD_UPLOAD -> {
                         if (parts.length < 2) {
