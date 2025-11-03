@@ -1,9 +1,6 @@
 package com.filexchange.common;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 
 public class Utils {
     public static void copyStream(InputStream in, OutputStream out, long filesize) throws IOException {
@@ -34,4 +31,23 @@ public class Utils {
         }
         return fileList;
     }
+
+    public static FileDownloadCommand isFileAvailableForDownload(String filepath, String directoryPath) throws FileNotFoundException {
+        File folder = new File(directoryPath);
+        File[] listOfFiles = folder.listFiles();
+        if (listOfFiles != null) {
+            for (File file : listOfFiles) {
+                if (file.isFile()) {
+                    // remove unique identifier from filename
+                    String originalFilename = file.getName().substring(file.getName().indexOf("_") + 1);
+                    if (originalFilename.equals(filepath)) {
+                        return new FileDownloadCommand(originalFilename, file, (int) file.length());
+                    }
+                }
+            }
+            throw new FileNotFoundException();
+        }
+        return null;
+    }
+
 }

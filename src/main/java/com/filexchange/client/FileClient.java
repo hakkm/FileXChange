@@ -75,7 +75,29 @@ public class FileClient {
                         System.out.println(response);
                     }
                     case Protocol.CMD_DOWNLOAD -> {
-                        // todo
+                        if (parts.length < 2) {
+                            System.out.println("Usage: DOWNLOAD <local_path>");
+                            break;
+                        }
+                        String request = Protocol.CMD_DOWNLOAD + " " + parts[1].trim();
+                        dos.writeUTF(request);
+                        System.out.println("Sent DOWNLOAD command for " + parts[1].trim());
+                        String response = dis.readUTF();
+                        logger.fine("Received response: " + response);
+                        if (response.startsWith(Protocol.RESP_OK)) {
+                            String[] respParts = response.split(" ");
+                            assert respParts.length == 2;
+                            long filesize = Long.parseLong(respParts[1].trim());
+                            dos.writeUTF(Protocol.RESP_READY);
+                            try (var f_out = Files.newOutputStream(Path.of(parts[1].trim()))) {
+                                Utils.copyStream(dis, f_out, filesize);
+                                System.out.println("File downloaded: " + parts[1].trim());
+                            }
+                        } else if (response.startsWith(Protocol.RESP_ERROR)) {
+                            System.out.println("Error from server: " + response);
+                        } else {
+                            System.out.println("Unexpected response: " + response);
+                        }
                     }
                     default -> {
                         System.out.println("Unknown command: " + cmd);

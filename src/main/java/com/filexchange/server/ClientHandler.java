@@ -36,7 +36,7 @@ public class ClientHandler implements Runnable {
 
                 switch (cmd) {
                     case Protocol.CMD_UPLOAD -> commandHandler.upload(dis, dos, parts);
-                    case Protocol.CMD_DOWNLOAD -> System.out.println("download");
+                    case Protocol.CMD_DOWNLOAD -> commandHandler.download(dis,dos, parts);
                     case Protocol.CMD_LIST -> commandHandler.list(dos);
                     case Protocol.CMD_EXIT -> {
                         System.out.println("exit");

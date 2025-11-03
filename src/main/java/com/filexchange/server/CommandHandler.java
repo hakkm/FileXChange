@@ -1,5 +1,6 @@
 package com.filexchange.server;
 
+import com.filexchange.common.FileDownloadCommand;
 import com.filexchange.common.FileUploadCommand;
 import com.filexchange.common.Protocol;
 import com.filexchange.common.Utils;
@@ -85,6 +86,87 @@ public class CommandHandler {
             logger.info("Sent file list to client.");
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Failed to send file list to client: " + e.getMessage(), e);
+        }
+    }
+
+    public void download(DataInputStream dis, DataOutputStream dos, String[] parts) {
+        //
+//        3. Then Server responds with `OK <filesize>\n` if the file exists, or `ERROR <message>\n` if there was an error.
+        FileDownloadCommand fdc;
+        try {
+            fdc = Utils.isFileAvailableForDownload(parts[1].trim(), STORAGE_PATH);
+            assert fdc != null;
+            String ok = Protocol.RESP_OK + " " + fdc.getFilesize();
+            dos.writeUTF(ok);
+        } catch (FileNotFoundException e) {
+            String response = Protocol.RESP_ERROR + " File not found";
+            logger.info(response);
+            try {
+                dos.writeUTF(response);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
+            }
+            return;
+        } catch (IOException e) {
+            String response = Protocol.RESP_ERROR + " Internal server error";
+            logger.info(response);
+            try {
+                dos.writeUTF(response);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
+            }
+            return;
+        }
+
+//        4. Then Client sends `READY\n` to indicate it's ready to receive the file.
+        try {
+            String clientReady = dis.readUTF();
+            if (!clientReady.equals(Protocol.RESP_READY)) {
+                String response = Protocol.RESP_ERROR + " Client not ready";
+                logger.info(response);
+                dos.writeUTF(response);
+                return;
+            }
+        } catch (IOException e) {
+            String response = Protocol.RESP_ERROR + " Failed to read client readiness";
+            logger.info(response);
+            try {
+                dos.writeUTF(response);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
+            }
+            return;
+        }
+//        5. Then Server sends the file content in binary format.
+        try (FileInputStream fis = new FileInputStream(fdc.getFilepath())) {
+            Utils.copyStream(fis, dos, fdc.getFilesize());
+            logger.info("File sent: " + fdc.getFilename());
+        } catch (IOException e) {
+            String response = Protocol.RESP_ERROR + " File transfer failed";
+            logger.info(response);
+            try {
+                dos.writeUTF(response);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
+            }
+            return;
+        }
+//        6. Then Client responds with `SUCCESS\n` if the file is received successfully, or `ERROR <message>\n` if there was an
+        try {
+            String clientResponse = dis.readUTF();
+            if (clientResponse.equals(Protocol.RESP_SUCCESS)) {
+                logger.info("Client confirmed successful file receipt: " + fdc.getFilename());
+            } else {
+                logger.info("Client reported error after file transfer: " + clientResponse);
+            }
+        } catch (IOException e) {
+            String response = Protocol.RESP_ERROR + " Failed to read client response after file transfer";
+            logger.info(response);
+            try {
+                dos.writeUTF(response);
+            } catch (IOException ex) {
+                logger.log(Level.SEVERE, "Failed to send error message: " + ex.getMessage(), ex);
+            }
         }
     }
 }

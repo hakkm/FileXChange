@@ -13,4 +13,5 @@ public final class Protocol {
     public static final String RESP_BYE = "BYE";
     public static final String RESP_ERROR = "ERROR";
     public static final String RESP_LIST_PREFIX = "FILES";
+    public static final String RESP_SUCCESS = "SUCCESS";
 }
